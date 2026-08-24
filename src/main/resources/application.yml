@@ -2,5 +2,12 @@ spring:
   application:
     name: medical-record-service
 
+  medical-record:
+    upload-dir: uploads/medical-records
+
   config:
     import: optional:configserver:http://localhost:8888
+
+  gcp:
+    storage:
+      bucket-name: vetcare-files-project-e9fb8820-8459-4622-9e9
