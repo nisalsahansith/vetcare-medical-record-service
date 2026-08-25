@@ -39,7 +39,7 @@ public class MedicalRecordController {
             @RequestParam(required = false) String notes,
             @RequestParam MultipartFile image) {
 
-        String fileName =
+        String gcpFileUrl =
                 fileService.saveFile(image);
 
         MedicalRecord record =
@@ -56,10 +56,7 @@ public class MedicalRecordController {
                 image.getOriginalFilename()
         );
 
-        record.setImagePath(
-                "/api/v1/medical-records/files/"
-                        + fileName
-        );
+        record.setImagePath(gcpFileUrl);
 
         record.setCreatedAt(
                 LocalDateTime.now()
