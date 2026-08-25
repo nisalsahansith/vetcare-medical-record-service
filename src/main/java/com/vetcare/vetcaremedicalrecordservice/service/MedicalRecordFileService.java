@@ -1,143 +1,76 @@
 package com.vetcare.vetcaremedicalrecordservice.service;
 
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Storage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.*;
 import java.util.UUID;
 
 @Service
 public class MedicalRecordFileService {
 
-    private final Path uploadDirectory;
+    private final Storage storage;
 
-    public MedicalRecordFileService(
-            @Value("${medical-record.upload-dir:uploads/medical-records}")
-            String uploadDir) {
+    @Value("${gcp.storage.bucket-name}")
+    private String bucketName;
 
-        this.uploadDirectory =
-                Paths.get(uploadDir).toAbsolutePath().normalize();
-
-        try {
-            Files.createDirectories(uploadDirectory);
-        } catch (IOException e) {
-            throw new RuntimeException(
-                    "Could not create upload directory",
-                    e
-            );
-        }
+    public MedicalRecordFileService(Storage storage) {
+        this.storage = storage;
     }
 
+    // Record Class for loading file byte data
+    public record ResourceFile(byte[] data, String contentType) {}
+
+    // 1. Upload File to GCP Cloud Storage Bucket
     public String saveFile(MultipartFile file) {
-
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Medical record image is required."
-            );
-        }
-
-        String originalName = file.getOriginalFilename();
-
-        String extension = "";
-
-        if (originalName != null &&
-                originalName.contains(".")) {
-
-            extension = originalName.substring(
-                    originalName.lastIndexOf(".")
-            );
-        }
-
-        String fileName =
-                UUID.randomUUID() + extension;
-
-        Path destination =
-                uploadDirectory.resolve(fileName);
-
         try {
+            String extension = "";
+            String originalName = file.getOriginalFilename();
+            if (originalName != null && originalName.contains(".")) {
+                extension = originalName.substring(originalName.lastIndexOf("."));
+            }
 
-            Files.copy(
-                    file.getInputStream(),
-                    destination,
-                    StandardCopyOption.REPLACE_EXISTING
-            );
+            String uniqueFileName = UUID.randomUUID().toString() + extension;
+            BlobId blobId = BlobId.of(bucketName, uniqueFileName);
 
-            return fileName;
+            BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
+                    .setContentType(file.getContentType())
+                    .build();
 
+            storage.create(blobInfo, file.getBytes());
+
+            return uniqueFileName;
         } catch (IOException e) {
-
-            throw new RuntimeException(
-                    "Failed to save medical record image",
-                    e
-            );
+            throw new RuntimeException("Failed to upload file to GCP Storage", e);
         }
     }
 
+    // 2. Download/Stream File from GCP Bucket
     public ResourceFile loadFile(String fileName) {
+        BlobId blobId = BlobId.of(bucketName, fileName);
+        Blob blob = storage.get(blobId);
 
-        try {
-
-            Path file =
-                    uploadDirectory
-                            .resolve(fileName)
-                            .normalize();
-
-            if (!file.startsWith(uploadDirectory)) {
-                throw new IllegalArgumentException(
-                        "Invalid file path."
-                );
-            }
-
-            if (!Files.exists(file)) {
-                return null;
-            }
-
-            return new ResourceFile(
-                    Files.readAllBytes(file),
-                    Files.probeContentType(file)
-            );
-
-        } catch (IOException e) {
-
-            throw new RuntimeException(
-                    "Failed to read medical record image",
-                    e
-            );
+        if (blob == null || !blob.exists()) {
+            return null;
         }
+
+        byte[] content = blob.getContent();
+        String contentType = blob.getContentType();
+
+        return new ResourceFile(content, contentType);
     }
 
+    // 3. Delete File from GCP Bucket
     public void deleteFile(String fileName) {
-
-        if (fileName == null ||
-                fileName.isBlank()) {
+        if (fileName == null || fileName.isBlank()) {
             return;
         }
-
-        try {
-
-            Path file =
-                    uploadDirectory
-                            .resolve(fileName)
-                            .normalize();
-
-            if (file.startsWith(uploadDirectory)) {
-                Files.deleteIfExists(file);
-            }
-
-        } catch (IOException e) {
-
-            throw new RuntimeException(
-                    "Failed to delete medical record image",
-                    e
-            );
-        }
-    }
-
-    public record ResourceFile(
-            byte[] data,
-            String contentType
-    ) {
+        BlobId blobId = BlobId.of(bucketName, fileName);
+        storage.delete(blobId);
     }
 }
