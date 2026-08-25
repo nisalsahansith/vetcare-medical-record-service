@@ -29,6 +29,8 @@ public class MedicalRecordFileService {
     // 1. Upload File to GCP Cloud Storage Bucket
     public String saveFile(MultipartFile file) {
         try {
+            System.out.println("=== CURRENT GCP BUCKET NAME: " + bucketName + " ===");
+
             String extension = "";
             String originalName = file.getOriginalFilename();
             if (originalName != null && originalName.contains(".")) {
@@ -44,9 +46,12 @@ public class MedicalRecordFileService {
 
             storage.create(blobInfo, file.getBytes());
 
+            System.out.println("=== UPLOAD SUCCESSFUL TO BUCKET: " + bucketName + " FILENAME: " + uniqueFileName + " ===");
             return uniqueFileName;
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to upload file to GCP Storage", e);
+        } catch (Exception e) {
+            System.out.println("=== UPLOAD FAILED ERROR: " + e.getMessage() + " ===");
+            e.printStackTrace();
+            throw new RuntimeException("GCP Cloud Storage Upload Failed: " + e.getMessage(), e);
         }
     }
 
