@@ -1,13 +1,28 @@
+server:
+  port: 8084
+
 spring:
   application:
     name: medical-record-service
-
-  medical-record:
-    upload-dir: uploads/medical-records
-
   config:
     import: optional:configserver:http://localhost:8888
+  cloud:
+    config:
+      enabled: false
 
-  gcp:
-    storage:
-      bucket-name: vetcare-files-project-e9fb8820-8459-4622-9e9
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    enabled: true
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://10.10.0.4:8761/eureka/
+
+gcp:
+  storage:
+    bucket-name: vetcare-files-project-e9fb8820-8459-4622-9e9
+
+medical-record:
+  upload-dir: uploads/medical-records
