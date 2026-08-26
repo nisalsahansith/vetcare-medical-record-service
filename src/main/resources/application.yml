@@ -21,7 +21,7 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: http://10.10.0.4:8761/eureka/
+      defaultZone: http://10.10.0.8:8761/eureka/
 
 gcp:
   storage:
