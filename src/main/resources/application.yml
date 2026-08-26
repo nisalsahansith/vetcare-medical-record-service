@@ -9,6 +9,9 @@ spring:
   cloud:
     config:
       enabled: false
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/vetcare_medical_db
 
 eureka:
   instance:
