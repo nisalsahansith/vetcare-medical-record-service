@@ -5,7 +5,7 @@ spring:
   application:
     name: medical-record-service
   config:
-    import: optional:configserver:http://localhost:8888
+    import: optional:configserver:http://10.10.0.8:8888
   cloud:
     config:
       enabled: false
